@@ -25,6 +25,21 @@ test('local Authelia cookies become host-only while retaining Secure', async () 
     globalThis.fetch = previous;
   }
 });
+test('Authelia receives public subpath in login target and verification headers', async () => {
+  const previous = globalThis.fetch;
+  const calls: RequestInit[] = [];
+  globalThis.fetch = async (_url, options) => {
+    calls.push(options ?? {});
+    return new Response(JSON.stringify({ status: 'OK', data: { username: 'admin', groups: ['admins'] } }), { status: 200, headers: { 'remote-user': 'admin', 'remote-groups': 'admins' } });
+  };
+  try {
+    const gateway = new AutheliaGateway('http://authelia:9091', 'https://ssccss.cc', false, '/driving24');
+    await gateway.login('admin', 'password');
+    assert.equal(JSON.parse(calls[0].body as string).targetURL, 'https://ssccss.cc/driving24/backoffice');
+    await gateway.verify('patente_session=token');
+    assert.equal((calls[1].headers as Record<string, string>)['x-original-url'], 'https://ssccss.cc/driving24/api/auth/me');
+  } finally { globalThis.fetch = previous; }
+});
 const person = {
   id: 'person',
   username: 'alice',

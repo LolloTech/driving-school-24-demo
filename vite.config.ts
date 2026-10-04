@@ -2,9 +2,16 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { readFileSync } from 'node:fs';
 import { request as httpRequest } from 'node:http';
-const secure = process.env.LOCAL_HTTPS === 'true';
+import { loadEnvironment, basePath } from './scripts/environment.mjs';
+const config = loadEnvironment();
+const base = basePath(config.VITE_BASE_PATH);
+const prefix = base.replace(/\/$/, '');
+const secure = config.LOCAL_HTTPS === 'true';
 
 export default defineConfig({
+  base,
+  envDir: false,
+  define: { 'import.meta.env.VITE_API_URL': JSON.stringify(config.VITE_API_URL ?? '') },
   plugins: [
     react(),
     {
@@ -15,7 +22,7 @@ export default defineConfig({
             const proxy = httpRequest(
               {
                 hostname: '127.0.0.1',
-                port: 9091,
+                port: Number(config.AUTHELIA_PORT ?? 9091),
                 path: req.url,
                 method: req.method,
                 headers: {
@@ -39,9 +46,9 @@ export default defineConfig({
           }
           if (
             !req.headers.host?.startsWith('auth.') &&
-            /^\/(login|register|backoffice)(\/|\?|$)/.test(req.url ?? '')
+            /^\/(login|register|backoffice)(\/|\?|$)/.test((req.url ?? '').slice(prefix.length))
           )
-            req.url = '/backoffice.html';
+            req.url = `${base}backoffice.html`;
           next();
         });
       },
@@ -62,6 +69,9 @@ export default defineConfig({
         }
       : undefined,
     allowedHosts: ['app.patente.localhost', 'auth.patente.localhost'],
-    proxy: { '/api': 'http://localhost:3000', '/health': 'http://localhost:3000' },
+    proxy: Object.fromEntries(['/api', '/health'].map(path => [prefix + path, {
+      target: `http://127.0.0.1:${config.BACKEND_PORT ?? 3000}`,
+      rewrite: (url: string) => url.slice(prefix.length),
+    }])),
   },
 });

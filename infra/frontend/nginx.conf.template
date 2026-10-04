@@ -1,0 +1,35 @@
+worker_processes 1;
+pid /tmp/nginx.pid;
+error_log /dev/stderr warn;
+events { worker_connections 128; }
+http {
+    include /etc/nginx/mime.types;
+    default_type application/octet-stream;
+    access_log /dev/stdout;
+    sendfile on;
+    client_body_temp_path /tmp/client;
+    proxy_temp_path /tmp/proxy;
+    fastcgi_temp_path /tmp/fastcgi;
+    uwsgi_temp_path /tmp/uwsgi;
+    scgi_temp_path /tmp/scgi;
+    server {
+        listen 8080;
+        server_name _;
+        root /dist;
+        location = /__frontend_health { return 200 'ok'; }
+        location ^~ ${APP_BASE_PATH}/assets/ {
+            alias /dist/assets/;
+            add_header Cache-Control "public, max-age=300";
+        }
+        location ~ ^${APP_BASE_PATH}/(login|register|backoffice)(/|$) {
+            root /dist;
+            try_files /backoffice.html =404;
+            add_header Cache-Control "public, max-age=300";
+        }
+        location ${APP_BASE_PATH}/ {
+            root /dist;
+            try_files /index.html =404;
+            add_header Cache-Control "public, max-age=300";
+        }
+    }
+}

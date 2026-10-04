@@ -34,7 +34,7 @@ export default function Header() {
               {l.label}
             </NavLink>
           ))}
-          <a href="/login" className="site-nav__link">login</a>
+          <a href={`${import.meta.env.BASE_URL}login`} className="site-nav__link">login</a>
           <Link to="/contatti" className="btn site-nav__cta">
             Iscriviti
           </Link>

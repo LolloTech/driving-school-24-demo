@@ -27,6 +27,7 @@ const auth = new AuthService(
     process.env.AUTHELIA_URL ?? 'http://localhost:9091',
     origin,
     process.env.AUTH_COOKIE_HOST_ONLY === 'true',
+    process.env.APP_BASE_PATH ?? '',
   ),
 );
 const queue = new NatsTaskQueue(

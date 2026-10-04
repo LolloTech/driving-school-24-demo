@@ -14,7 +14,11 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:frontend": "vitest run",
-    "dev:secure": "node scripts/dev-secure.mjs"
+    "test:backend": "npm --prefix src/modules/backend test",
+    "test:deploy": "node --test scripts/deploy.test.mjs scripts/environment.test.mjs",
+    "test:ci": "npm run build && npm --prefix src/modules/backend run build && npm run test:backend && npm run test:frontend && npm run test:deploy",
+    "dev:secure": "node scripts/dev-secure.mjs",
+    "stack": "node scripts/stack.mjs"
   },
   "dependencies": {
     "gsap": "^3.15.0",
