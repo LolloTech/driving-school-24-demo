@@ -17,7 +17,7 @@ The host key is stable across normal reboots. Verify any replacement before upda
 
 ## Server preparation
 
-Git, rootless Podman, and a Compose provider are required. All containers belong to `deploy`, not `ubuntu` or root. The administrator installs the provider system-wide with `sudo apt install podman-compose`. Rootless UID/GID mappings must be configured by the administrator.
+Git, rootless Podman, and a Compose provider are required. All containers belong to `deploy`, not `ubuntu` or root. The administrator installs the provider system-wide with `sudo apt install podman-compose`. Rootless UID/GID mappings must be configured by the administrator. On this EC2 host the user manager stops containers when the SSH session ends unless lingering is enabled; the administrator must run `sudo loginctl enable-linger deploy`. Deployment checks this prerequisite before stopping any containers.
 
 Clone location:
 
@@ -53,7 +53,7 @@ No Nginx, Cloudflare tunnel, TLS certificate installation, or system autostart i
 | `/api/*`, `/health` | `127.0.0.1:13000` (configured `BACKEND_PORT`), preserve paths and cookies |
 | Authentication hostname | `127.0.0.1:19091` (configured `AUTHELIA_PORT`), preserve public host and forwarded HTTPS scheme |
 
-Autostart and user-session lifetime remain infrastructure concerns. The administrator may enable user lingering if needed; no systemd units are installed here.
+Autostart remains an infrastructure concern. Lingering keeps the user manager available after SSH logout; it does not install an application startup unit. No systemd units are installed here.
 
 ## Local checks
 

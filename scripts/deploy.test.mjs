@@ -20,7 +20,8 @@ function run(scenario) {
   if (scenario !== 'missing-env') writeFileSync(join(project, '.env'), 'LOCAL_SECRET=preserve-me\n');
   writeFileSync(join(project, 'database-sentinel'), 'persistent data');
   const mock = (name, body) => writeFileSync(join(bin, name), `#!/usr/bin/env bash\nset -eu\nprintf '%s\\n' '${name} '"$*" >> "$TEST_JOURNAL"\n${body}\n`, { mode: 0o755 });
-  mock('id', 'if [[ "$TEST_SCENARIO" == root ]]; then echo 0; else echo 1001; fi');
+  mock('id', 'if [[ "$1" == -un ]]; then echo deploy; elif [[ "$TEST_SCENARIO" == root ]]; then echo 0; else echo 1001; fi');
+  mock('loginctl', 'if [[ "$TEST_SCENARIO" == no-linger ]]; then echo no; else echo yes; fi');
   mock('flock', 'exit 0');
   mock('sleep', 'exit 0');
   mock('git', `
@@ -72,8 +73,9 @@ const failureMessages = {
   'missing-env': /Create the server-local/, 'tracked-env': /must not be tracked/,
   stale: /main has changed/, race: /does not match/, conflict: /Stash conflict/,
   'env-changed': /changed during the update/,
+  'no-linger': /Enable lingering/,
 };
-for (const scenario of ['missing-env', 'tracked-env', 'stale', 'race', 'conflict', 'env-changed', 'invalid-config', 'frontend-build-failed']) {
+for (const scenario of ['missing-env', 'tracked-env', 'stale', 'race', 'conflict', 'env-changed', 'invalid-config', 'frontend-build-failed', 'no-linger']) {
   test(`${scenario}: refuses deployment before stopping existing containers`, () => {
     const fixture = run(scenario);
     try {

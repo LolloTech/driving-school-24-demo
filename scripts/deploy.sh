@@ -8,7 +8,11 @@ expected_sha="${1:?Pass the tested commit SHA}"
 [[ "$(id -u)" != 0 ]] || { echo 'Run deployment as the rootless deploy user, not root.' >&2; exit 1; }
 project_dir="${DEPLOY_PROJECT_DIR:-/home/deploy/projects/driving-school-24-demo}"
 repository='https://github.com/LolloTech/driving-school-24-demo.git'
-for dependency in git podman flock sha256sum; do command -v "$dependency" >/dev/null; done
+for dependency in git podman flock sha256sum loginctl; do command -v "$dependency" >/dev/null; done
+[[ "$(loginctl show-user "$(id -un)" -p Linger --value)" == yes ]] || {
+  echo 'Enable lingering for deploy before deployment: sudo loginctl enable-linger deploy' >&2
+  exit 1
+}
 export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
 podman compose version >/dev/null
 [[ "$(podman info --format '{{.Host.Security.Rootless}}')" == true ]] || {
