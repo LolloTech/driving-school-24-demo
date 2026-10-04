@@ -90,6 +90,12 @@ Set `FRONTEND_PORT=18080`, `AUTH_ORIGIN=https://ssccss.cc/driving24auth/` and `A
 
 Autostart remains an infrastructure concern. Lingering keeps the user manager available after SSH logout; it does not install an application startup unit. No systemd units are installed here.
 
+## Manual startup and boot entry point
+
+Run `bash scripts/start-stack.sh` as `deploy`. It resolves the environment with the shared Node implementation and runs Compose detached, including memory limits, without building or pulling application images. If Node is not installed on the host, it uses the cached `docker.io/library/node:24-alpine` image in a temporary, read-only, network-disabled container. This image is already used for frontend builds; startup fails if it is missing rather than downloading software at boot. Host-process environment overrides apply when using host Node; the temporary-container fallback resolves the environment files without forwarding arbitrary host variables.
+
+The script works from any current directory, refuses root, and writes Compose startup output to the private `.deploy/start-stack.log`. It does not install or enable systemd, reboot the host, or pull Git changes. A separately managed systemd unit can call `/usr/bin/bash /home/deploy/projects/driving-school-24-demo/scripts/start-stack.sh` with `User=deploy`; rootless runtime initialization and user-manager startup remain infrastructure responsibilities. A successful Compose return does not guarantee that all health checks have completed: check `podman ps` afterwards.
+
 ## Local checks
 
 ```sh

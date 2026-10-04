@@ -1,9 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { loadEnvironment, basePath } from './environment.mjs';
+import { loadEnvironment, basePath, writeEnvironment } from './environment.mjs';
 import { execFileSync } from 'node:child_process';
 import { resolve } from 'node:path';
 
@@ -31,4 +31,15 @@ test('normalizes root/subpath and rejects unsafe path forms', () => {
   for (const value of ['https://example.com', '/a/../b', '/a?b', '//external']) {
     assert.throws(() => basePath(value));
   }
+});
+
+test('writes only application keys, preserves literal dollars, rejects unsupported values', () => {
+  const root = mkdtempSync(join(tmpdir(), 'patente-env-'));
+  try {
+    writeFileSync(join(root, '.env.dev'), 'TOKEN=demo\n');
+    const target = writeEnvironment(root, { TOKEN: '$literal#secret', UNRELATED: 'omit' });
+    assert.equal(readFileSync(target, 'utf8'), "TOKEN='$literal#secret'\n");
+    assert.throws(() => writeEnvironment(root, { TOKEN: "unsupported'quote" }));
+    assert.equal(readFileSync(target, 'utf8'), "TOKEN='$literal#secret'\n");
+  } finally { rmSync(root, { recursive: true, force: true }); }
 });

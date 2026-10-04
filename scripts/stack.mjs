@@ -1,17 +1,8 @@
-import { mkdirSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { resolve, basename, dirname, delimiter } from 'node:path';
-import { loadEnvironment } from './environment.mjs';
+import { writeEnvironment } from './environment.mjs';
 
-const config = loadEnvironment();
-mkdirSync('.deploy', { recursive: true, mode: 0o700 });
-const keys = Object.keys(loadEnvironment(process.cwd(), {}));
-const lines = keys.map(key => {
-  const value = config[key];
-  if (/[\n\r']/.test(value)) throw new Error(`Unsupported multiline/quoted environment value: ${key}`);
-  return `${key}='${value}'`;
-});
-writeFileSync('.deploy/environment.env', lines.join('\n') + '\n', { mode: 0o600 });
+writeEnvironment();
 const podman = process.env.PODMAN_BINARY ?? (process.platform === 'win32'
   ? resolve(process.env.LOCALAPPDATA, 'Programs/Podman/podman.exe') : 'podman');
 const provider = process.env.PODMAN_COMPOSE_PROVIDER;
