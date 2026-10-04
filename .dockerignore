@@ -2,3 +2,13 @@ node_modules
 dist
 .git
 *.tsbuildinfo
+.env
+.env.*
+**/.env
+**/.env.*
+infra/runtime
+**/node_modules
+**/dist
+**/data
+*.pem
+**/*.pem

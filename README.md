@@ -1,8 +1,10 @@
 # Via Libera — demo site for a driving school
 
+[![CI and deployment](https://github.com/LolloTech/driving-school-24-demo/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/LolloTech/driving-school-24-demo/actions/workflows/ci.yml)
+
 Front end in React + TypeScript (Vite). One-page app with three routes:
 
-The login and React backoffice live in `src/modules/backoffice`, with a separate HTML entry and no public animation dependencies. The independent Node/TypeScript API lives in `src/modules/backend`; its TypeScript project and Docker build remain isolated from Vite. See [the application README](../README.md) for backend/Authelia setup, secure local development, database commands and the full test pipeline. For the working login demo, use `npm run dev:secure` after starting the backend containers.
+The login and React backoffice live in `src/modules/backoffice`, with a separate HTML entry and no public animation dependencies. The independent Node/TypeScript API lives in `src/modules/backend`; its TypeScript project and Docker build remain isolated from Vite. See [CI and deployment](docs/deployment.md) for the test pipeline, Podman stack, server configuration, and routing contract.
 
 | Route       | Contents                                                                 |
 |-------------|--------------------------------------------------------------------------|
@@ -12,10 +14,10 @@ The login and React backoffice live in `src/modules/backoffice`, with a separate
 
 ## Quick start
 
-Requires **Node ≥ 20.19** (the system Node 14 is too old; `.nvmrc` pins 20.19.5).
+Requires **Node 24+** for the full application and test pipeline (`.nvmrc` pins the major version).
 
 ```bash
-nvm use            # or: export PATH=~/.nvm/versions/node/v20.19.5/bin:$PATH
+nvm use
 npm install
 npm run dev        # http://localhost:5173
 ```

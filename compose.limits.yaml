@@ -1,0 +1,8 @@
+services:
+  backend:
+    mem_limit: 128m
+    cpus: 1.0
+  nats:
+    mem_limit: 32m
+  authelia:
+    mem_limit: 96m

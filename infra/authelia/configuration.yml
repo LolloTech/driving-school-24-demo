@@ -1,0 +1,47 @@
+server:
+  address: 'tcp://0.0.0.0:9091'
+log:
+  level: warn
+authentication_backend:
+  refresh_interval: always
+  password_reset:
+    disable: true
+  file:
+    path: /identity/users.yml
+    watch: true
+    search:
+      email: true
+      case_insensitive: true
+    password:
+      algorithm: argon2
+      argon2:
+        variant: argon2id
+        memory: 19456
+        iterations: 2
+        parallelism: 1
+access_control:
+  default_policy: deny
+  rules:
+    - domain: '{{ env "APP_HOST" }}'
+      policy: one_factor
+session:
+  name: patente_session
+  expiration: 1h
+  inactivity: 30m
+  cookies:
+    - domain: '{{ env "COOKIE_DOMAIN" }}'
+      authelia_url: '{{ env "AUTH_ORIGIN" }}'
+      default_redirection_url: '{{ env "APP_ORIGIN" }}/backoffice'
+storage:
+  local:
+    path: /data/authelia.db
+notifier:
+  filesystem:
+    filename: /data/notifications.txt
+identity_validation:
+  reset_password:
+    jwt_lifespan: 5 minutes
+regulation:
+  max_retries: 5
+  find_time: 2m
+  ban_time: 5m
