@@ -87,14 +87,17 @@ fi
 healthy=false
 for ((attempt=1; attempt<=30; attempt++)); do
   backend_id="$("${compose[@]}" ps -q backend)"
-  if [[ -n "$backend_id" ]] && podman exec "$backend_id" wget -q -O /dev/null http://127.0.0.1:3000/health; then
+  frontend_service_id="$("${compose[@]}" ps -q frontend)"
+  if [[ -n "$backend_id" && -n "$frontend_service_id" ]] &&
+    podman exec "$backend_id" wget -q -O /dev/null http://127.0.0.1:3000/health &&
+    podman exec "$frontend_service_id" wget -q -O /dev/null http://127.0.0.1:8080/__frontend_health; then
     healthy=true
     break
   fi
   sleep 2
 done
 [[ "$healthy" == true ]] || {
-  echo 'Backend health check failed. Inspect services on the server; no volumes were removed.' >&2
+  echo 'Backend or frontend health check failed. Inspect services on the server; no volumes were removed.' >&2
   "${compose[@]}" ps
   exit 1
 }

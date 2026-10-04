@@ -1,5 +1,24 @@
 name: patente
 services:
+  frontend:
+    image: localhost/patente_frontend:latest
+    build:
+      context: .
+      dockerfile: infra/frontend/Dockerfile
+      args:
+        VITE_BASE_PATH: ${VITE_BASE_PATH:-/}
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp:size=8m,mode=1777
+    environment:
+      APP_BASE_PATH: ${APP_BASE_PATH:-}
+    ports:
+      - '127.0.0.1:${FRONTEND_PORT:-18080}:8080'
+    healthcheck:
+      test: [CMD, wget, -q, -O, /dev/null, http://127.0.0.1:8080/__frontend_health]
+      interval: 15s
+      timeout: 3s
   identity-init:
     image: localhost/patente_backend:latest
     command: [node, dist/cli.js, setup]
@@ -63,6 +82,7 @@ services:
       GOMEMLIMIT: 48MiB
       GOGC: '25'
       AUTHELIA_NTP_DISABLE_FAILURE: ${AUTHELIA_NTP_DISABLE_FAILURE:-false}
+      AUTHELIA_SERVER_ADDRESS: ${AUTHELIA_SERVER_ADDRESS:-tcp://0.0.0.0:9091/}
       APP_ORIGIN: ${APP_ORIGIN:?Set APP_ORIGIN}
       APP_BASE_PATH: ${APP_BASE_PATH:-}
       AUTH_ORIGIN: ${AUTH_ORIGIN:?Set the public HTTPS authentication origin}

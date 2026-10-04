@@ -42,16 +42,18 @@ VITE_BASE_PATH=/driving24/
 APP_BASE_PATH=/driving24
 APP_ORIGIN=https://ssccss.cc
 API_ORIGIN=https://ssccss.cc
-AUTH_ORIGIN=https://auth.ssccss.cc
+AUTH_ORIGIN=https://ssccss.cc/driving24/auth/
 APP_HOST=ssccss.cc
 COOKIE_DOMAIN=ssccss.cc
 AUTH_COOKIE_HOST_ONLY=false
 BACKEND_PORT=13000
 AUTHELIA_PORT=19091
+FRONTEND_PORT=18080
+AUTHELIA_SERVER_ADDRESS=tcp://0.0.0.0:9091/driving24/auth
 DATABASE_URL=sqlite:/data/patente.db
 ```
 
-Origins contain only scheme and hostname; the path is separate. Changing `VITE_BASE_PATH` requires rebuilding the frontend. The authentication hostname needs its own DNS/proxy route, to be configured by the administrator. Dev remains at `http://localhost:5173/`; its HTTPS demo identity origins are used internally by the localhost cookie bridge.
+Origins contain only scheme and hostname; the path is separate. Changing `VITE_BASE_PATH` requires rebuilding the frontend. The authentication portal uses a subpath on the same hostname. Dev remains at `http://localhost:5173/`; its HTTPS demo identity origins are used internally by the localhost cookie bridge.
 
 ```sh
 python3 scripts/environment.py
@@ -69,19 +71,22 @@ The server builds frontend assets using a temporary Node 24 container image, rem
 
 This sequence has downtime. A failed rebuild after `down` leaves the application stopped; automatic rollback is not included. Persistent volumes (`backend-data`, `identity-data`, `authelia-data`, `nats-data`) are never deleted. Back these up separately; Git stash does not back up the database.
 
-Backend and Authelia publish only loopback ports, configured by `BACKEND_PORT` and `AUTHELIA_PORT` (container ports remain `3000` and `9091`). The current server uses `13000` and `19091` to avoid its existing service on port `3000`. NATS stays private on the Compose network. Runtime memory ceilings total 256 MiB for the three long-running services, excluding the host and frontend/image builds. The current EC2 server has about 1.8 GiB RAM; build workloads require more memory than the runtime stack.
+Backend and Authelia publish only loopback ports, configured by `BACKEND_PORT` and `AUTHELIA_PORT` (container ports remain `3000` and `9091`). The current server uses `13000` and `19091` to avoid its existing service on port `3000`. NATS stays private on the Compose network. Runtime memory ceilings total 272 MiB for the four long-running services, excluding the host and frontend/image builds. The current EC2 server has about 1.8 GiB RAM; build workloads require more memory than the runtime stack.
 
-## Routing owned by the server administrator
+## Host reverse proxy
 
-No Nginx, Cloudflare tunnel, TLS certificate installation, or system autostart is configured by this change.
+The frontend now runs in a fourth, non-root, read-only container with a 16 MiB limit. Static HTML and assets use `Cache-Control: public, max-age=300`. It has no host-directory mounts: host Nginx never needs access to the deploy user's home, build files or secrets. Backend/Authelia remain separate loopback listeners and NATS remains private. The total configured runtime memory ceiling is 272 MiB; builds require additional memory.
 
-| Route | Target |
+Include `infra/host/driving24.conf` inside the existing application-domain server block after copying it to `/etc/nginx/snippets/driving24.conf`. Do not create a second server block for the same domain. The host snippet assumes external HTTPS terminates at Cloudflare while the origin connection uses HTTP; it sets the forwarded scheme accordingly. It does not configure host Nginx, TLS, DNS or autostart itself.
+
+| Public route | Loopback listener |
 | --- | --- |
-| `/driving24/` public site and SPA fallback | `dist/index.html` |
-| `/driving24/login`, `/driving24/register`, `/driving24/backoffice`, `/driving24/backoffice/*` | `dist/backoffice.html` |
-| `/driving24/assets/*` | `dist/assets/*` |
-| `/driving24/api/*`, `/driving24/health` | `127.0.0.1:13000` (configured `BACKEND_PORT`), strip `/driving24` before forwarding; preserve cookies |
-| Authentication hostname | `127.0.0.1:19091` (configured `AUTHELIA_PORT`), preserve public host and forwarded HTTPS scheme |
+| `/driving24/`, login, register, backoffice and assets | `127.0.0.1:18080`, preserve the entire path |
+| `/driving24/api/*` | `127.0.0.1:13000/api/*`, strip the application prefix |
+| `/driving24/health` | `127.0.0.1:13000/health` |
+| `/driving24/auth/*` | `127.0.0.1:19091`, preserve the entire path |
+
+Set `FRONTEND_PORT=18080`, `AUTH_ORIGIN=https://ssccss.cc/driving24/auth/` and `AUTHELIA_SERVER_ADDRESS=tcp://0.0.0.0:9091/driving24/auth` in the private staging file. Dev uses root paths. Authelia serves both root internal endpoints and the configured public subpath, so backend authentication calls remain internal. No authentication subdomain is required. Configure Cloudflare to bypass cache for API, health and Authelia routes; static content uses a five-minute TTL.
 
 Autostart remains an infrastructure concern. Lingering keeps the user manager available after SSH logout; it does not install an application startup unit. No systemd units are installed here.
 

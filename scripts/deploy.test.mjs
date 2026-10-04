@@ -49,6 +49,8 @@ case "$*" in
   info*) echo true ;;
   *'config --quiet') [[ "$TEST_SCENARIO" != invalid-config ]] ;;
   *'ps -q backend') echo backend-test ;;
+  *'ps -q frontend') echo frontend-service-test ;;
+  'exec frontend-service-test '*) [[ "$TEST_SCENARIO" != frontend-unhealthy ]] ;;
   exec*) [[ "$TEST_SCENARIO" != unhealthy ]] ;;
   build*) [[ "$TEST_SCENARIO" != frontend-build-failed ]] ;;
   *'compose -p patente -f compose.yaml -f compose.limits.yaml --env-file .deploy/environment.env build')
@@ -103,17 +105,18 @@ test('successful deployment preserves environment/data and performs down, build,
     const up = fixture.commands.indexOf('compose -p patente -f compose.yaml -f compose.limits.yaml --env-file .deploy/environment.env up -d');
     const health = fixture.commands.indexOf('podman exec backend-test');
     assert.ok(down >= 0 && build > down && up > build && health > up);
+    assert.match(fixture.commands, /exec frontend-service-test.*__frontend_health/);
     assert.ok(readFileSync(join(fixture.project, 'dist/backoffice.html'), 'utf8'));
   } finally { fixture.cleanup(); }
 });
 
-for (const scenario of ['backend-build-failed', 'unhealthy']) {
+for (const scenario of ['backend-build-failed', 'unhealthy', 'frontend-unhealthy']) {
   test(`${scenario}: fails the deployment without deleting volumes`, () => {
     const fixture = run(scenario);
     try {
       assert.equal(fixture.result.status, 1, fixture.result.stderr);
       assert.match(fixture.commands, /compose .* down/);
-      if (scenario === 'unhealthy') assert.match(fixture.result.stderr, /health check failed/);
+      if (scenario.endsWith('unhealthy')) assert.match(fixture.result.stderr, /health check failed/);
       assert.doesNotMatch(fixture.commands, /--volumes/);
       assert.doesNotMatch(fixture.commands, /podman cp /);
     } finally { fixture.cleanup(); }
