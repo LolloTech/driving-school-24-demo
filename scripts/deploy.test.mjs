@@ -48,8 +48,8 @@ exit 0
 case "$*" in
   info*) echo true ;;
   *'config --quiet') [[ "$TEST_SCENARIO" != invalid-config ]] ;;
-  *'ps -q backend') echo backend-test ;;
-  *'ps -q frontend') echo frontend-service-test ;;
+  *'label=com.docker.compose.service=backend') echo backend-test ;;
+  *'label=com.docker.compose.service=frontend') echo frontend-service-test ;;
   'exec frontend-service-test '*) [[ "$TEST_SCENARIO" != frontend-unhealthy ]] ;;
   exec*) [[ "$TEST_SCENARIO" != unhealthy ]] ;;
   build*) [[ "$TEST_SCENARIO" != frontend-build-failed ]] ;;
@@ -106,6 +106,8 @@ test('successful deployment preserves environment/data and performs down, build,
     const health = fixture.commands.indexOf('podman exec backend-test');
     assert.ok(down >= 0 && build > down && up > build && health > up);
     assert.match(fixture.commands, /exec frontend-service-test.*__frontend_health/);
+    assert.match(fixture.commands, /podman ps -q --filter label=com.docker.compose.project=patente --filter label=com.docker.compose.service=backend/);
+    assert.doesNotMatch(fixture.commands, /compose .* ps -q/);
     assert.ok(readFileSync(join(fixture.project, 'dist/backoffice.html'), 'utf8'));
   } finally { fixture.cleanup(); }
 });

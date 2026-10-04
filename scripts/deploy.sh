@@ -86,8 +86,8 @@ fi
 
 healthy=false
 for ((attempt=1; attempt<=30; attempt++)); do
-  backend_id="$("${compose[@]}" ps -q backend)"
-  frontend_service_id="$("${compose[@]}" ps -q frontend)"
+  backend_id="$(podman ps -q --filter label=com.docker.compose.project=patente --filter label=com.docker.compose.service=backend)"
+  frontend_service_id="$(podman ps -q --filter label=com.docker.compose.project=patente --filter label=com.docker.compose.service=frontend)"
   if [[ -n "$backend_id" && -n "$frontend_service_id" ]] &&
     podman exec "$backend_id" wget -q -O /dev/null http://127.0.0.1:3000/health &&
     podman exec "$frontend_service_id" wget -q -O /dev/null http://127.0.0.1:8080/__frontend_health; then
