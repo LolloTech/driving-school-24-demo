@@ -12,3 +12,5 @@ infra/runtime
 **/data
 *.pem
 **/*.pem
+.deploy
+.deploy-test-*

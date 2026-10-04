@@ -9,7 +9,6 @@ expected_sha="${1:?Pass the tested commit SHA}"
 project_dir="${DEPLOY_PROJECT_DIR:-/home/deploy/projects/driving-school-24-demo}"
 repository='https://github.com/LolloTech/driving-school-24-demo.git'
 for dependency in git podman flock sha256sum; do command -v "$dependency" >/dev/null; done
-export PATH="$HOME/.local/bin:$PATH"
 export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
 podman compose version >/dev/null
 [[ "$(podman info --format '{{.Host.Security.Rootless}}')" == true ]] || {
@@ -71,7 +70,11 @@ echo 'Removing application containers, keeping all persistent volumes.'
 "${compose[@]}" down
 echo 'Rebuilding and starting application services.'
 "${compose[@]}" build
-"${compose[@]}" up -d
+mkdir -p .deploy
+if ! "${compose[@]}" up -d > .deploy/compose-start.log 2>&1; then
+  echo 'Container startup failed. Inspect .deploy/compose-start.log over SSH; its private output is not printed in CI.' >&2
+  exit 1
+fi
 
 healthy=false
 for ((attempt=1; attempt<=30; attempt++)); do

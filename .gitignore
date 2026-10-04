@@ -7,3 +7,4 @@ infra/runtime/
 *.tsbuildinfo
 *.pem
 .deploy-test-*/
+.deploy/

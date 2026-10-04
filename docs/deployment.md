@@ -17,7 +17,7 @@ The host key is stable across normal reboots. Verify any replacement before upda
 
 ## Server preparation
 
-Git, rootless Podman, and a Compose provider are required. All containers belong to `deploy`, not `ubuntu` or root. A user-local provider at `~/.local/bin/podman-compose` is supported; alternatively the administrator can install `podman-compose` system-wide. Rootless UID/GID mappings must be configured by the administrator.
+Git, rootless Podman, and a Compose provider are required. All containers belong to `deploy`, not `ubuntu` or root. The administrator installs the provider system-wide with `sudo apt install podman-compose`. Rootless UID/GID mappings must be configured by the administrator.
 
 Clone location:
 
@@ -39,7 +39,7 @@ The server builds frontend assets using a temporary Node 24 container image, rem
 
 This sequence has downtime. A failed rebuild after `down` leaves the application stopped; automatic rollback is not included. Persistent volumes (`backend-data`, `identity-data`, `authelia-data`, `nats-data`) are never deleted. Back these up separately; Git stash does not back up the database.
 
-Backend and Authelia publish only loopback ports `3000` and `9091`. NATS stays private on the Compose network. Runtime memory ceilings total 256 MiB for the three long-running services, excluding the host and frontend/image builds. The current EC2 server has about 1.8 GiB RAM; build workloads require more memory than the runtime stack.
+Backend and Authelia publish only loopback ports, configured by `BACKEND_PORT` and `AUTHELIA_PORT` (container ports remain `3000` and `9091`). The current server uses `13000` and `19091` to avoid its existing service on port `3000`. NATS stays private on the Compose network. Runtime memory ceilings total 256 MiB for the three long-running services, excluding the host and frontend/image builds. The current EC2 server has about 1.8 GiB RAM; build workloads require more memory than the runtime stack.
 
 ## Routing owned by the server administrator
 
@@ -50,8 +50,8 @@ No Nginx, Cloudflare tunnel, TLS certificate installation, or system autostart i
 | Public site and SPA fallback | `dist/index.html` |
 | `/login`, `/register`, `/backoffice`, `/backoffice/*` | `dist/backoffice.html` |
 | `/assets/*` | `dist/assets/*` |
-| `/api/*`, `/health` | `127.0.0.1:3000`, preserve paths and cookies |
-| Authentication hostname | `127.0.0.1:9091`, preserve public host and forwarded HTTPS scheme |
+| `/api/*`, `/health` | `127.0.0.1:13000` (configured `BACKEND_PORT`), preserve paths and cookies |
+| Authentication hostname | `127.0.0.1:19091` (configured `AUTHELIA_PORT`), preserve public host and forwarded HTTPS scheme |
 
 Autostart and user-session lifetime remain infrastructure concerns. The administrator may enable user lingering if needed; no systemd units are installed here.
 
