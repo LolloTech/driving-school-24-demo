@@ -1,0 +1,40 @@
+{
+  "name": "patente-backend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc",
+    "start": "node --max-old-space-size=32 --max-semi-space-size=1 dist/server.js",
+    "db:create": "tsx src/cli.ts create",
+    "db:reset": "tsx src/cli.ts reset",
+    "db:seed": "tsx src/cli.ts seed",
+    "setup": "tsx src/cli.ts setup",
+    "admin:password": "tsx src/cli.ts set-admin-password",
+    "test:unit": "tsx --test --test-concurrency=1 tests/unit/*.test.ts",
+    "test:integration": "tsx --test --test-concurrency=1 tests/integration/*.test.ts",
+    "test": "npm run test:unit && npm run test:integration",
+    "test:stack": "tsx tests/stack.ts",
+    "db:sync-identities": "tsx src/cli.ts sync-identities"
+  },
+  "dependencies": {
+    "fastify": "^5.6.1",
+    "@fastify/rate-limit": "^10.3.0",
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
+    "nats": "^2.29.3",
+    "pg": "^8.16.3",
+    "@node-rs/argon2": "^2.0.2",
+    "yaml": "^2.8.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/pg": "^8.15.5",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.3"
+  }
+}
