@@ -77,7 +77,7 @@ Backend and Authelia publish only loopback ports, configured by `BACKEND_PORT` a
 
 The frontend now runs in a fourth, non-root, read-only container with a 16 MiB limit. Static HTML and assets use `Cache-Control: public, max-age=300`. It has no host-directory mounts: host Nginx never needs access to the deploy user's home, build files or secrets. Backend/Authelia remain separate loopback listeners and NATS remains private. The total configured runtime memory ceiling is 272 MiB; builds require additional memory.
 
-Include `infra/host/driving24.conf` inside the existing application-domain server block after copying it to `/etc/nginx/snippets/driving24.conf`. Do not create a second server block for the same domain. The host snippet assumes external HTTPS terminates at Cloudflare while the origin connection uses HTTP; it sets the forwarded scheme accordingly. It does not configure host Nginx, TLS, DNS or autostart itself.
+Host reverse-proxy configuration is managed separately by the server administrator and is not stored in this repository. Route the application paths within the existing application-domain server block. Preserve the external HTTPS scheme when forwarding requests from Cloudflare. Host Nginx, TLS, DNS and autostart remain outside the application deployment.
 
 | Public route | Loopback listener |
 | --- | --- |
