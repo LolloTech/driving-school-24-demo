@@ -45,6 +45,10 @@ esac
 exit 0
 `);
   mock('podman', `
+if { true >&9; } 2>/dev/null; then
+  echo 'Podman inherited the deployment lock descriptor.' >&2
+  exit 1
+fi
 case "$*" in
   info*) echo true ;;
   *'config --quiet') [[ "$TEST_SCENARIO" != invalid-config ]] ;;

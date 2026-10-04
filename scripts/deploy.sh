@@ -21,6 +21,8 @@ podman compose version >/dev/null
 mkdir -p "$(dirname "$project_dir")"
 exec 9>"$(dirname "$project_dir")/.patente-deploy.lock"
 flock -n 9 || { echo 'Another deployment is already running.' >&2; exit 1; }
+# Keep the lock in this shell; Podman daemons must not inherit its descriptor.
+podman() { command podman "$@" 9>&-; }
 if [[ ! -e "$project_dir" ]]; then
   git clone --branch main "$repository" "$project_dir"
 fi
