@@ -42,14 +42,14 @@ VITE_BASE_PATH=/driving24/
 APP_BASE_PATH=/driving24
 APP_ORIGIN=https://ssccss.cc
 API_ORIGIN=https://ssccss.cc
-AUTH_ORIGIN=https://ssccss.cc/driving24/auth/
+AUTH_ORIGIN=https://ssccss.cc/driving24-auth/
 APP_HOST=ssccss.cc
 COOKIE_DOMAIN=ssccss.cc
 AUTH_COOKIE_HOST_ONLY=false
 BACKEND_PORT=13000
 AUTHELIA_PORT=19091
 FRONTEND_PORT=18080
-AUTHELIA_SERVER_ADDRESS=tcp://0.0.0.0:9091/driving24/auth
+AUTHELIA_SERVER_ADDRESS=tcp://0.0.0.0:9091/driving24-auth
 DATABASE_URL=sqlite:/data/patente.db
 ```
 
@@ -84,9 +84,9 @@ Include `infra/host/driving24.conf` inside the existing application-domain serve
 | `/driving24/`, login, register, backoffice and assets | `127.0.0.1:18080`, preserve the entire path |
 | `/driving24/api/*` | `127.0.0.1:13000/api/*`, strip the application prefix |
 | `/driving24/health` | `127.0.0.1:13000/health` |
-| `/driving24/auth/*` | `127.0.0.1:19091`, preserve the entire path |
+| `/driving24-auth/*` | `127.0.0.1:19091`, preserve the entire path |
 
-Set `FRONTEND_PORT=18080`, `AUTH_ORIGIN=https://ssccss.cc/driving24/auth/` and `AUTHELIA_SERVER_ADDRESS=tcp://0.0.0.0:9091/driving24/auth` in the private staging file. Dev uses root paths. Authelia serves both root internal endpoints and the configured public subpath, so backend authentication calls remain internal. No authentication subdomain is required. Configure Cloudflare to bypass cache for API, health and Authelia routes; static content uses a five-minute TTL.
+Set `FRONTEND_PORT=18080`, `AUTH_ORIGIN=https://ssccss.cc/driving24-auth/` and `AUTHELIA_SERVER_ADDRESS=tcp://0.0.0.0:9091/driving24-auth` in the private staging file. Dev uses root paths. Authelia serves both root internal endpoints and the configured public subpath, so backend authentication calls remain internal. No authentication subdomain is required. Configure Cloudflare to bypass cache for API, health and Authelia routes; static content uses a five-minute TTL.
 
 Autostart remains an infrastructure concern. Lingering keeps the user manager available after SSH logout; it does not install an application startup unit. No systemd units are installed here.
 
