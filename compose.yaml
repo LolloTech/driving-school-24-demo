@@ -19,7 +19,9 @@ services:
       DATABASE_URL: ${DATABASE_URL:-sqlite:/data/patente.db}
       AUTH_USERS_FILE: /identity/users.yml
       APP_ORIGIN: ${APP_ORIGIN:?Set the public HTTPS application origin}
-      API_ORIGIN: ${APP_ORIGIN:?Set the public HTTPS application origin}
+      API_ORIGIN: ${API_ORIGIN:?Set the browser application origin}
+      APP_BASE_PATH: ${APP_BASE_PATH:-}
+      AUTH_COOKIE_HOST_ONLY: ${AUTH_COOKIE_HOST_ONLY:-false}
       AUTHELIA_URL: http://authelia:9091
       NATS_URL: nats://nats:4222
       NATS_TOKEN: ${NATS_TOKEN:?Set NATS_TOKEN in the server-local .env}
@@ -60,7 +62,9 @@ services:
       X_AUTHELIA_CONFIG_FILTERS: template
       GOMEMLIMIT: 48MiB
       GOGC: '25'
+      AUTHELIA_NTP_DISABLE_FAILURE: ${AUTHELIA_NTP_DISABLE_FAILURE:-false}
       APP_ORIGIN: ${APP_ORIGIN:?Set APP_ORIGIN}
+      APP_BASE_PATH: ${APP_BASE_PATH:-}
       AUTH_ORIGIN: ${AUTH_ORIGIN:?Set the public HTTPS authentication origin}
       COOKIE_DOMAIN: ${COOKIE_DOMAIN:?Set the common application/auth cookie domain}
       APP_HOST: ${APP_HOST:?Set the application hostname}

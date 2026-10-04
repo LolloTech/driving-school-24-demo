@@ -28,7 +28,7 @@ jobs:
       - run: npm test
         working-directory: src/modules/backend
       - name: Test deployment safeguards
-        run: node --test scripts/deploy.test.mjs
+        run: node --test scripts/deploy.test.mjs scripts/environment.test.mjs
 
   frontend:
     name: Frontend build and tests

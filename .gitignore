@@ -3,8 +3,10 @@ node_modules
 .env
 .env.*
 !.env.example
+!.env.dev
 infra/runtime/
 *.tsbuildinfo
 *.pem
 .deploy-test-*/
 .deploy/
+__pycache__/

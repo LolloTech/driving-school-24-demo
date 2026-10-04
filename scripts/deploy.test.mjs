@@ -17,19 +17,20 @@ function run(scenario) {
   const journal = join(dir, 'commands');
   mkdirSync(bin);
   mkdirSync(project);
-  if (scenario !== 'missing-env') writeFileSync(join(project, '.env'), 'LOCAL_SECRET=preserve-me\n');
+  if (scenario !== 'missing-env') writeFileSync(join(project, '.env.staging'), 'LOCAL_SECRET=preserve-me\n');
   writeFileSync(join(project, 'database-sentinel'), 'persistent data');
   const mock = (name, body) => writeFileSync(join(bin, name), `#!/usr/bin/env bash\nset -eu\nprintf '%s\\n' '${name} '"$*" >> "$TEST_JOURNAL"\n${body}\n`, { mode: 0o755 });
   mock('id', 'if [[ "$1" == -un ]]; then echo deploy; elif [[ "$TEST_SCENARIO" == root ]]; then echo 0; else echo 1001; fi');
   mock('loginctl', 'if [[ "$TEST_SCENARIO" == no-linger ]]; then echo no; else echo yes; fi');
   mock('flock', 'exit 0');
+  mock('python3', 'if [[ \"$*\" == *-c* ]]; then echo /; fi');
   mock('sleep', 'exit 0');
   mock('git', `
 case "$*" in
   'remote get-url origin') echo 'https://github.com/LolloTech/driving-school-24-demo.git' ;;
   'branch --show-current') echo main ;;
-  'ls-files --error-unmatch .env') [[ "$TEST_SCENARIO" == tracked-env ]] ;;
-  'check-ignore -q .env') exit 0 ;;
+  'ls-files --error-unmatch .env.staging') [[ "$TEST_SCENARIO" == tracked-env ]] ;;
+  'check-ignore -q .env.staging') exit 0 ;;
   'rev-parse origin/main')
     if [[ "$TEST_SCENARIO" == stale ]]; then echo '${'b'.repeat(40)}'; else echo '${sha}'; fi ;;
   'rev-parse HEAD')
@@ -38,7 +39,7 @@ case "$*" in
   'status --porcelain --untracked-files=no')
     if [[ "$TEST_SCENARIO" == dirty || "$TEST_SCENARIO" == conflict ]]; then echo ' M README.md'; fi ;;
   'pull --ff-only origin main')
-    if [[ "$TEST_SCENARIO" == env-changed ]]; then echo changed > .env; fi ;;
+    if [[ "$TEST_SCENARIO" == env-changed ]]; then echo changed > .env.staging; fi ;;
   'stash apply '*) [[ "$TEST_SCENARIO" != conflict ]] ;;
 esac
 exit 0
@@ -50,7 +51,7 @@ case "$*" in
   *'ps -q backend') echo backend-test ;;
   exec*) [[ "$TEST_SCENARIO" != unhealthy ]] ;;
   build*) [[ "$TEST_SCENARIO" != frontend-build-failed ]] ;;
-  *'compose -p patente -f compose.yaml -f compose.limits.yaml build')
+  *'compose -p patente -f compose.yaml -f compose.limits.yaml --env-file .deploy/environment.env build')
     [[ "$TEST_SCENARIO" != backend-build-failed ]] ;;
   create*) echo frontend-test ;;
   cp*) printf '<html>public</html>' > dist/index.html; printf '<html>backoffice</html>' > dist/backoffice.html ;;
@@ -92,14 +93,14 @@ test('successful deployment preserves environment/data and performs down, build,
   const fixture = run('dirty');
   try {
     assert.equal(fixture.result.status, 0, fixture.result.stderr);
-    assert.equal(readFileSync(join(fixture.project, '.env'), 'utf8'), 'LOCAL_SECRET=preserve-me\n');
+    assert.equal(readFileSync(join(fixture.project, '.env.staging'), 'utf8'), 'LOCAL_SECRET=preserve-me\n');
     assert.equal(readFileSync(join(fixture.project, 'database-sentinel'), 'utf8'), 'persistent data');
     assert.match(fixture.commands, /git stash push/);
     assert.match(fixture.commands, /git stash apply c{40}/);
     assert.doesNotMatch(fixture.commands, /(?:--volumes|--force|reset --hard)/);
-    const down = fixture.commands.indexOf('compose -p patente -f compose.yaml -f compose.limits.yaml down');
-    const build = fixture.commands.indexOf('compose -p patente -f compose.yaml -f compose.limits.yaml build');
-    const up = fixture.commands.indexOf('compose -p patente -f compose.yaml -f compose.limits.yaml up -d');
+    const down = fixture.commands.indexOf('compose -p patente -f compose.yaml -f compose.limits.yaml --env-file .deploy/environment.env down');
+    const build = fixture.commands.indexOf('compose -p patente -f compose.yaml -f compose.limits.yaml --env-file .deploy/environment.env build');
+    const up = fixture.commands.indexOf('compose -p patente -f compose.yaml -f compose.limits.yaml --env-file .deploy/environment.env up -d');
     const health = fixture.commands.indexOf('podman exec backend-test');
     assert.ok(down >= 0 && build > down && up > build && health > up);
     assert.ok(readFileSync(join(fixture.project, 'dist/backoffice.html'), 'utf8'));

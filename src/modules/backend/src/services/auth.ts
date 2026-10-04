@@ -72,6 +72,7 @@ export class AutheliaGateway implements AuthenticationGateway {
     private base: string,
     private origin: string,
     private hostOnlyCookies = false,
+    private appBasePath = '',
   ) {}
   private cookies(headers: Headers) {
     const cookies = headers.getSetCookie();
@@ -86,9 +87,9 @@ export class AutheliaGateway implements AuthenticationGateway {
       'x-forwarded-proto': url.protocol.slice(0, -1),
       'x-forwarded-host': url.host,
       'x-forwarded-for': '127.0.0.1',
-      'x-forwarded-uri': '/api/auth/me',
+      'x-forwarded-uri': `${this.appBasePath}/api/auth/me`,
       'x-forwarded-method': 'GET',
-      'x-original-url': `${this.origin}/api/auth/me`,
+      'x-original-url': `${this.origin}${this.appBasePath}/api/auth/me`,
     };
   }
   async verify(cookie: string) {
@@ -123,7 +124,7 @@ export class AutheliaGateway implements AuthenticationGateway {
           username,
           password,
           keepMeLoggedIn: false,
-          targetURL: `${this.origin}/backoffice`,
+          targetURL: `${this.origin}${this.appBasePath}/backoffice`,
         }),
         signal: AbortSignal.timeout(10000),
       });

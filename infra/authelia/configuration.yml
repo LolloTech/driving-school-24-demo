@@ -31,7 +31,7 @@ session:
   cookies:
     - domain: '{{ env "COOKIE_DOMAIN" }}'
       authelia_url: '{{ env "AUTH_ORIGIN" }}'
-      default_redirection_url: '{{ env "APP_ORIGIN" }}/backoffice'
+      default_redirection_url: '{{ env "APP_ORIGIN" }}{{ env "APP_BASE_PATH" }}/backoffice'
 storage:
   local:
     path: /data/authelia.db

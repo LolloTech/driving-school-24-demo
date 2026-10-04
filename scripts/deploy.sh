@@ -8,7 +8,7 @@ expected_sha="${1:?Pass the tested commit SHA}"
 [[ "$(id -u)" != 0 ]] || { echo 'Run deployment as the rootless deploy user, not root.' >&2; exit 1; }
 project_dir="${DEPLOY_PROJECT_DIR:-/home/deploy/projects/driving-school-24-demo}"
 repository='https://github.com/LolloTech/driving-school-24-demo.git'
-for dependency in git podman flock sha256sum loginctl; do command -v "$dependency" >/dev/null; done
+for dependency in git podman flock sha256sum loginctl python3; do command -v "$dependency" >/dev/null; done
 [[ "$(loginctl show-user "$(id -un)" -p Linger --value)" == yes ]] || {
   echo 'Enable lingering for deploy before deployment: sudo loginctl enable-linger deploy' >&2
   exit 1
@@ -31,15 +31,17 @@ cd "$project_dir"
 [[ "$(git branch --show-current)" == main ]] || {
   echo 'The deployment checkout must be on main.' >&2; exit 1;
 }
-[[ -f .env && ! -L .env ]] || {
-  echo 'Create the server-local .env from .env.example before deploying.' >&2; exit 1;
+env_file=.env.staging
+[[ ! -e .env.prod ]] || env_file=.env.prod
+[[ -f "$env_file" && ! -L "$env_file" ]] || {
+  echo 'Create the server-local .env.staging or .env.prod before deploying.' >&2; exit 1;
 }
-if git ls-files --error-unmatch .env >/dev/null 2>&1; then
-  echo '.env must not be tracked by Git.' >&2; exit 1;
+if git ls-files --error-unmatch "$env_file" >/dev/null 2>&1; then
+  echo 'Private environment must not be tracked by Git.' >&2; exit 1;
 fi
-git check-ignore -q .env || { echo '.env must be ignored by Git.' >&2; exit 1; }
-chmod 600 .env
-env_hash="$(sha256sum .env)"
+git check-ignore -q "$env_file" || { echo 'Private environment must be ignored by Git.' >&2; exit 1; }
+chmod 600 "$env_file"
+env_hash="$(sha256sum "$env_file")"
 git fetch origin main
 [[ "$(git rev-parse origin/main)" == "$expected_sha" ]] || {
   echo 'main has changed since testing; let the workflow for the newer commit deploy.' >&2; exit 1;
@@ -59,17 +61,19 @@ fi
 [[ "$(git rev-parse HEAD)" == "$expected_sha" ]] || {
   echo 'Checkout does not match the tested commit; deployment stopped.' >&2; exit 1;
 }
-[[ "$(sha256sum .env)" == "$env_hash" ]] || {
-  echo 'The server-local .env changed during the update; deployment stopped.' >&2; exit 1;
+[[ "$(sha256sum "$env_file")" == "$env_hash" ]] || {
+  echo 'The server-local environment changed during the update; deployment stopped.' >&2; exit 1;
 }
-compose=(podman compose -p patente -f compose.yaml -f compose.limits.yaml)
+python3 scripts/environment.py >/dev/null
+compose=(podman compose -p patente -f compose.yaml -f compose.limits.yaml --env-file .deploy/environment.env)
 # Validate required production settings before stopping any running containers.
 "${compose[@]}" config --quiet
 mkdir -p infra/runtime
 chmod 700 infra/runtime
 
 echo 'Building static frontend on the server.'
-podman build -t localhost/patente_frontend:latest -f infra/frontend/Dockerfile .
+frontend_base="$(python3 -c 'from scripts.environment import load_environment; print(load_environment(".").get("VITE_BASE_PATH", "/"))')"
+podman build --build-arg "VITE_BASE_PATH=$frontend_base" -t localhost/patente_frontend:latest -f infra/frontend/Dockerfile .
 echo 'Removing application containers, keeping all persistent volumes.'
 "${compose[@]}" down
 echo 'Rebuilding and starting application services.'

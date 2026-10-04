@@ -1,3 +1,4 @@
+import { appUrl } from '../../paths';
 export type RecordData = { id: string; createdAt: string; [key: string]: unknown };
 export type Answer = { id: string; text: string; correct?: boolean };
 export type Quiz = RecordData & { question: string; answers: Answer[] };
@@ -15,7 +16,7 @@ export class ApiError extends Error {
   }
 }
 export async function request<T>(path: string, method = 'GET', body?: unknown): Promise<T> {
-  const r = await fetch(path, {
+  const r = await fetch(appUrl(path), {
     method,
     credentials: 'same-origin',
     headers: body !== undefined ? { 'Content-Type': 'application/json' } : undefined,

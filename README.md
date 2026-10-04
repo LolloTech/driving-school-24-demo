@@ -19,6 +19,7 @@ Requires **Node 24+** for the full application and test pipeline (`.nvmrc` pins 
 ```bash
 nvm use
 npm install
+npm run stack -- up -d --build  # rootless Podman + Compose
 npm run dev        # http://localhost:5173
 ```
 
@@ -49,7 +50,7 @@ Animation conventions (lessons learned):
 
 ## Connecting the real backend
 
-`src/api/client.ts` exposes an `ApiClient` interface. With no configuration it uses an in-browser mock. Set `VITE_API_URL` in `.env.local` (see `.env.example`) and the form will `POST {VITE_API_URL}/contact` with a `ContactRequest` JSON body.
+`src/api/client.ts` exposes an `ApiClient` interface. With no configuration it uses an in-browser mock. Set `VITE_API_URL` in `.env.dev` or a private `.env.staging` (see `.env.example`) and the form will `POST {VITE_API_URL}/contact` with a `ContactRequest` JSON body.
 
 ## Notes
 

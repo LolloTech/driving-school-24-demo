@@ -1,6 +1,7 @@
 import { useEffect, useState, type CSSProperties, type FormEvent } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ApiError, request, type Me, type RecordData, type Answer } from './api';
+import { appUrl } from '../../paths';
 import { useHealth } from './useHealth';
 import RecordForm from './RecordForm';
 const sections = [
@@ -158,7 +159,7 @@ export default function Backoffice() {
       )}
       {!me ? (
         <main className="bo-auth">
-          <a className="bo-brand" href="/">
+          <a className="bo-brand" href={appUrl("/")}>
             Via Libera <span>WORKSPACE</span>
           </a>
           <div className="bo-auth-card">
@@ -229,7 +230,7 @@ export default function Backoffice() {
             >
               {register ? 'Hai già un account? Login' : 'Nuovo qui? Registrati'}
             </button>
-            <a href="/" className="bo-return">
+            <a href={appUrl("/")} className="bo-return">
               Torna al sito
             </a>
           </div>
@@ -238,7 +239,7 @@ export default function Backoffice() {
       ) : (
         <div className="bo-layout">
           <aside className="bo-sidebar">
-            <a className="bo-brand" href="/">
+            <a className="bo-brand" href={appUrl("/")}>
               Via Libera <span>BACKOFFICE</span>
             </a>
             <div className="bo-profile">
@@ -276,7 +277,7 @@ export default function Backoffice() {
                 {mode === 'dark' ? 'Passa a tema chiaro' : 'Passa a tema scuro'}
               </button>
               <button onClick={() => void logout()}>Esci</button>
-              <a href="/">Sito pubblico ↗</a>
+              <a href={appUrl("/")}>Sito pubblico ↗</a>
             </div>
           </aside>
           <main className="bo-work">

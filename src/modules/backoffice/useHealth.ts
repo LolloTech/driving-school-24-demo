@@ -1,3 +1,4 @@
+import { appUrl } from '../../paths';
 import { useEffect, useState } from 'react';
 export function useHealth() {
   const [connected, setConnected] = useState<boolean | null>(null);
@@ -8,7 +9,7 @@ export function useHealth() {
       if (busy) return;
       busy = true;
       try {
-        const r = await fetch('/health', { signal: AbortSignal.timeout(5000), cache: 'no-store' });
+        const r = await fetch(appUrl('/health'), { signal: AbortSignal.timeout(5000), cache: 'no-store' });
         const data = await r.json();
         if (alive) setConnected(r.ok && data.ok === true);
       } catch {

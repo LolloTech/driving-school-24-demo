@@ -17,7 +17,7 @@ The host key is stable across normal reboots. Verify any replacement before upda
 
 ## Server preparation
 
-Git, rootless Podman, and a Compose provider are required. All containers belong to `deploy`, not `ubuntu` or root. The administrator installs the provider system-wide with `sudo apt install podman-compose`. Rootless UID/GID mappings must be configured by the administrator. On this EC2 host the user manager stops containers when the SSH session ends unless lingering is enabled; the administrator must run `sudo loginctl enable-linger deploy`. Deployment checks this prerequisite before stopping any containers.
+Git, Python 3, rootless Podman, and a Compose provider are required. All containers belong to `deploy`, not `ubuntu` or root. The administrator installs the provider system-wide with `sudo apt install podman-compose`. Rootless UID/GID mappings must be configured by the administrator. On this EC2 host the user manager stops containers when the SSH session ends unless lingering is enabled; the administrator must run `sudo loginctl enable-linger deploy`. Deployment checks this prerequisite before stopping any containers.
 
 Clone location:
 
@@ -25,13 +25,43 @@ Clone location:
 git clone https://github.com/LolloTech/driving-school-24-demo.git /home/deploy/projects/driving-school-24-demo
 ```
 
-Create `/home/deploy/projects/driving-school-24-demo/.env` from `.env.example` with permissions `600`. Set your public Cloudflare application/authentication HTTPS origins and common cookie domain. Generate each application secret independently with `openssl rand -hex 32`. Do not commit `.env`; deployments never replace it. The repository is public, so Git pulls need no GitHub credentials on this host.
+Create `/home/deploy/projects/driving-school-24-demo/.env.staging` from `.env.example` with permissions `600`. Set your public Cloudflare application/authentication HTTPS origins and common cookie domain. Generate each application secret independently with `openssl rand -hex 32`. Do not commit `.env.staging`; deployments never replace it. The repository is public, so Git pulls need no GitHub credentials on this host.
 
 The first container startup provisions a random administrator password in `infra/runtime/admin-credentials.txt` on the server. Read it over your trusted SSH connection; it is never printed in the pipeline. Existing identities and passwords are preserved on later deployments. Demo quiz seeding is optional and is not run by deployment.
 
+## Environment layers and subpath hosting
+
+The application resolves keys in `.env.dev`, then `.env.staging`, then `.env.prod`: production overrides staging, staging overrides dev, and explicit process environment overrides files. Missing files are skipped. The legacy `.env` is deliberately not loaded. Do not leave a production file on a staging machine. The same key set belongs in each environment; only dev is committed, with public demonstration secrets. Vite exposes only its base path and optional `VITE_API_URL`, never authentication secrets.
+
+Use simple single-line `KEY=value` entries, optionally quoted. Multiline values and interpolation are not supported. On a Linux host, `python3 scripts/environment.py` writes a private effective file to `.deploy/environment.env` for Compose. With Node installed, `npm run stack -- up -d --build` and `npm run stack -- down` perform the same resolution automatically. Standard bare `podman compose` does not resolve these layers; use the wrapper or explicit `--env-file` below.
+
+For hosting at a path, configure these **nonsecret** staging values (keep all existing secret values):
+
+```dotenv
+VITE_BASE_PATH=/driving24/
+APP_BASE_PATH=/driving24
+APP_ORIGIN=https://ssccss.cc
+API_ORIGIN=https://ssccss.cc
+AUTH_ORIGIN=https://auth.ssccss.cc
+APP_HOST=ssccss.cc
+COOKIE_DOMAIN=ssccss.cc
+AUTH_COOKIE_HOST_ONLY=false
+BACKEND_PORT=13000
+AUTHELIA_PORT=19091
+DATABASE_URL=sqlite:/data/patente.db
+```
+
+Origins contain only scheme and hostname; the path is separate. Changing `VITE_BASE_PATH` requires rebuilding the frontend. The authentication hostname needs its own DNS/proxy route, to be configured by the administrator. Dev remains at `http://localhost:5173/`; its HTTPS demo identity origins are used internally by the localhost cookie bridge.
+
+```sh
+python3 scripts/environment.py
+podman compose -p patente -f compose.yaml -f compose.limits.yaml --env-file .deploy/environment.env up -d --build
+podman compose -p patente -f compose.yaml -f compose.limits.yaml --env-file .deploy/environment.env down
+```
+
 ## Deployment behavior
 
-`scripts/deploy.sh` runs from the workflow's tested checkout and receives its commit SHA. It validates prerequisites and configuration, fetches `main`, saves any tracked local changes into a dedicated stash, pulls with `--ff-only`, then applies that exact stash. Conflicts stop deployment; the stash is retained for recovery. If Git fails before applying the stash, recover the saved changes manually after resolving the error. Untracked files are not stashed; `.env` is ignored, checked to remain unchanged, and never sourced as a shell script. Avoid changing application source on the production server: restored local edits are not covered by CI tests.
+`scripts/deploy.sh` runs from the workflow's tested checkout and receives its commit SHA. It validates prerequisites and configuration, fetches `main`, saves any tracked local changes into a dedicated stash, pulls with `--ff-only`, then applies that exact stash. Conflicts stop deployment; the stash is retained for recovery. If Git fails before applying the stash, recover the saved changes manually after resolving the error. Untracked files are not stashed; `.env.staging` is ignored, checked to remain unchanged, and never sourced as a shell script. Avoid changing application source on the production server: restored local edits are not covered by CI tests.
 
 The checkout must match the tested SHA; a newer `main` cancels that older deployment. An additional server-side file lock prevents concurrent SSH deployments.
 
@@ -47,10 +77,10 @@ No Nginx, Cloudflare tunnel, TLS certificate installation, or system autostart i
 
 | Route | Target |
 | --- | --- |
-| Public site and SPA fallback | `dist/index.html` |
-| `/login`, `/register`, `/backoffice`, `/backoffice/*` | `dist/backoffice.html` |
-| `/assets/*` | `dist/assets/*` |
-| `/api/*`, `/health` | `127.0.0.1:13000` (configured `BACKEND_PORT`), preserve paths and cookies |
+| `/driving24/` public site and SPA fallback | `dist/index.html` |
+| `/driving24/login`, `/driving24/register`, `/driving24/backoffice`, `/driving24/backoffice/*` | `dist/backoffice.html` |
+| `/driving24/assets/*` | `dist/assets/*` |
+| `/driving24/api/*`, `/driving24/health` | `127.0.0.1:13000` (configured `BACKEND_PORT`), strip `/driving24` before forwarding; preserve cookies |
 | Authentication hostname | `127.0.0.1:19091` (configured `AUTHELIA_PORT`), preserve public host and forwarded HTTPS scheme |
 
 Autostart remains an infrastructure concern. Lingering keeps the user manager available after SSH logout; it does not install an application startup unit. No systemd units are installed here.
